@@ -122,20 +122,6 @@ def handle_message(event):
                     )
                 )
                 messages_to_send.append(create_carousel_message('A'))
-        # ----------------------------------------------------------
-            
-    elif text == '集計':
-        if user_id in ADMIN_USER_IDS:
-            # (集計機能は変更なし)
-            
-    elif text == 'リセット':
-        if user_id in ADMIN_USER_IDS:
-            # (リセット機能は変更なし)
-
-    if messages_to_send:
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(ReplyMessageRequest(reply_token=event.reply_token, messages=messages_to_send))
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -195,5 +181,4 @@ def handle_postback(event):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-
     app.run(host="0.0.0.0", port=port)
