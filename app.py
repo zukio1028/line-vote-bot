@@ -123,6 +123,42 @@ def handle_message(event):
                 )
                 messages_to_send.append(create_carousel_message('A'))
 
+elif text == '集計':
+        if user_id in ADMIN_USER_IDs:
+            data = load_votes()
+            vote_counts = data['votes']
+            sorted_votes = sorted(vote_counts.items(), key=lambda item: item[1], reverse=True)
+            reply_text = "【現在の投票結果】\n\n"
+            for candidate_id, count in sorted_votes:
+                candidate_name = CANDIDATES.get(candidate_id, {}).get('name', '不明な候補者')
+                reply_text += f"{candidate_name}: {count}票\n"
+            total_voters = len(data['voters'])
+            reply_text += f"\n総投票者数: {total_voters}人"
+            messages_to_send.append(TextMessage(text=reply_text))
+        else:
+            pass
+
+    elif text == 'リセット':
+        if user_id in ADMIN_USER_IDs:
+            data = load_votes()
+            voter_info = data['voters'].get(user_id)
+
+            if voter_info and 'last_vote_date' in voter_info:
+                del data['voters'][user_id]['last_vote_date']
+                save_votes(data)
+                reply_text = "あなたの投票記録をリセットしました。再度「投票」と入力してテストを開始できます。"
+            else:
+                reply_text = "リセット対象の投票記録がありません。"
+            
+            messages_to_send.append(TextMessage(text=reply_text))
+        else:
+            pass
+
+    if messages_to_send:
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(ReplyMessageRequest(reply_token=event.reply_token, messages=messages_to_send))
+
 @handler.add(PostbackEvent)
 def handle_postback(event):
     user_id = event.source.user_id
@@ -182,3 +218,4 @@ def handle_postback(event):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
