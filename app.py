@@ -94,55 +94,43 @@ def handle_message(event):
     messages_to_send = []
 
     if text == '投票':
-        today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y-%m-%d')
-        data = load_votes()
-        voter_info = data['voters'].get(user_id, {})
-        last_vote_date = voter_info.get('last_vote_date')
+        # --- ★★★ 投票期間チェック(ここからが新しいロジック) ★★★ ---
+        now_jst = datetime.now(ZoneInfo("Asia/Tokyo"))
+        # 投票開始日時を設定 (年, 月, 日, 時, 分, 秒)
+        start_date = datetime(2025, 10, 24, 0, 0, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-        if last_vote_date == today_jst:
-            messages_to_send.append(TextMessage(text='本日の投票は既に完了しています。また明日、よろしくお願いします！'))
+        if now_jst < start_date:
+            # 投票期間前の場合
+            messages_to_send.append(TextMessage(text='投票は10月24日の午前0時から開始します。もうしばらくお待ちください！'))
         else:
-            data['voters'][user_id] = {}
-            save_votes(data)
-            messages_to_send.append(TextMessage(text='まずは、COOL部門の投票です！'))
-            messages_to_send.append(
-                ImageMessage(
-                    original_content_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg',
-                    preview_image_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg'
+            # 投票期間中の場合、これまでの処理を実行
+            today_jst_str = now_jst.strftime('%Y-%m-%d')
+            data = load_votes()
+            voter_info = data['voters'].get(user_id, {})
+            last_vote_date = voter_info.get('last_vote_date')
+
+            if last_vote_date == today_jst_str:
+                messages_to_send.append(TextMessage(text='本日の投票は既に完了しています。また明日、よろしくお願いします！'))
+            else:
+                data['voters'][user_id] = {}
+                save_votes(data)
+                messages_to_send.append(TextMessage(text='まずは、COOL部門の投票です！'))
+                messages_to_send.append(
+                    ImageMessage(
+                        original_content_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg',
+                        preview_image_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg'
+                    )
                 )
-            )
-            messages_to_send.append(create_carousel_message('A'))
+                messages_to_send.append(create_carousel_message('A'))
+        # ----------------------------------------------------------
             
     elif text == '集計':
-        if user_id in ADMIN_USER_IDs:
-            data = load_votes()
-            vote_counts = data['votes']
-            sorted_votes = sorted(vote_counts.items(), key=lambda item: item[1], reverse=True)
-            reply_text = "【現在の投票結果】\n\n"
-            for candidate_id, count in sorted_votes:
-                candidate_name = CANDIDATES.get(candidate_id, {}).get('name', '不明な候補者')
-                reply_text += f"{candidate_name}: {count}票\n"
-            total_voters = len(data['voters'])
-            reply_text += f"\n総投票者数: {total_voters}人"
-            messages_to_send.append(TextMessage(text=reply_text))
-        else:
-            pass
-
-    elif text == 'リセット':
-        if user_id in ADMIN_USER_IDs:
-            data = load_votes()
-            voter_info = data['voters'].get(user_id)
-
-            if voter_info and 'last_vote_date' in voter_info:
-                del data['voters'][user_id]['last_vote_date']
-                save_votes(data)
-                reply_text = "あなたの投票記録をリセットしました。再度「投票」と入力してテストを開始できます。"
-            else:
-                reply_text = "リセット対象の投票記録がありません。"
+        if user_id in ADMIN_USER_IDS:
+            # (集計機能は変更なし)
             
-            messages_to_send.append(TextMessage(text=reply_text))
-        else:
-            pass
+    elif text == 'リセット':
+        if user_id in ADMIN_USER_IDS:
+            # (リセット機能は変更なし)
 
     if messages_to_send:
         with ApiClient(configuration) as api_client:
@@ -207,4 +195,5 @@ def handle_postback(event):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+
     app.run(host="0.0.0.0", port=port)
