@@ -100,6 +100,7 @@ def handle_message(event):
 
     if text == '投票':
         now_jst = datetime.now(ZoneInfo("Asia/Tokyo"))
+        # ★★★ 投票開始日をここで設定 ★★★
         start_date = datetime(2025, 10, 24, 0, 0, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
 
         if now_jst < start_date:
@@ -158,57 +159,4 @@ def handle_message(event):
     if messages_to_send:
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(ReplyMessageRequest(reply_token=event.reply_token, messages=messages_to_send))
-
-@handler.add(PostbackEvent)
-def handle_postback(event):
-    user_id = event.source.user_id
-    postback_data = parse_qs(event.postback.data)
-    action = postback_data.get('action', [None])[0]
-    
-    if action == 'vote':
-        candidate_id = postback_data.get('candidate_id', [None])[0]
-        voted_candidate = CANDIDATES.get(candidate_id)
-        if not voted_candidate: return
-            
-        data = load_votes()
-        voter_info = data['voters'].get(user_id, {})
-        voted_group = voted_candidate['group']
-
-        messages_to_send = []
-
-        if voter_info.get(voted_group):
-            messages_to_send.append(TextMessage(text=f'グループ{voted_group}には既に投票済みです。'))
-        else:
-            data['votes'][candidate_id] += 1
-            data['voters'][user_id][voted_group] = candidate_id
-            
-            if voted_group == 'A':
-                save_votes(data)
-                messages_to_send.append(TextMessage(text=f'{voted_candidate["name"]}さんに投票しました。\n次は、CUTE部門の投票です！'))
-                messages_to_send.append(
-                    ImageMessage(
-                        original_content_url='https://i.postimg.cc/15qjfcRr/cute3.jpg',
-                        preview_image_url='https://i.postimg.cc/15qjfcRr/cute3.jpg'
-                    )
-                )
-                messages_to_send.append(create_carousel_message('B'))
-
-            else: 
-                today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y-%m-%d')
-                data['voters'][user_id]['last_vote_date'] = today_jst
-                save_votes(data)
-                
-                voted_a_id = data['voters'][user_id].get('A')
-                voted_a_name = CANDIDATES.get(voted_a_id, {}).get('name', '未選択')
-                voted_b_name = voted_candidate["name"]
-                reply_text = f'{voted_b_name}さんに投票しました。\n\n本日の投票完了です！ありがとうございました！\nあなたの投票:\n- {voted_a_name}\n- {voted_b_name}'
-                messages_to_send.append(TextMessage(text=reply_text))
-
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(ReplyMessageRequest(reply_token=event.reply_token, messages=messages_to_send))
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+            line_bot_api.reply
