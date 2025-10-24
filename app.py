@@ -34,7 +34,7 @@ ACCESS_TOKEN = 'CRGRXv3lv4npWSbG3EWlkjLfbO2BlC76kiDRSwb99Tzx9IIrnkZYALJzS4NQ92ac
 CHANNEL_SECRET = '963605e7b2c57bf9262699e1bc4be12a'
 # 3. 管理者として登録したい人のLINEユーザーID (カンマ区切りで複数人設定可能)
 ADMIN_USER_IDS = [
-    'uf1611271742fa4f05fa7cc43fba1069d',
+    'Uf1611271742fa4f05fa7cc43fba1069d',
     'Ud261a022a8834f5febb028928488477d',
     'U591f718b10f9f62d09be717c34261e3f',
     'U6752c92e842f5e1401e2b1ec479856d0',
@@ -160,3 +160,4 @@ def handle_message(event):
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply
+
