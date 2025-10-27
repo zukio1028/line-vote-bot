@@ -94,7 +94,6 @@ def handle_message(event):
 
     if text == '投票':
         now_jst = datetime.now(ZoneInfo("Asia/Tokyo"))
-        # ★★★ 投票開始日をここで設定 ★★★
         start_date = datetime(2025, 10, 24, 0, 0, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
 
         if now_jst < start_date:
@@ -105,9 +104,24 @@ def handle_message(event):
             voter_info = data['voters'].get(user_id, {})
             last_vote_date = voter_info.get('last_vote_date')
 
+            # --- ★★★ ここからロジックを修正 ★★★ ---
             if last_vote_date == today_jst_str:
+                # 1. 既に投票完了している場合
                 messages_to_send.append(TextMessage(text='本日の投票は既に完了しています。また明日、よろしくお願いします！'))
+            
+            elif voter_info.get('A') and not voter_info.get('B'):
+                # 2. COOL部門だけ投票して、途中で止まっている場合
+                messages_to_send.append(TextMessage(text='CUTE部門の投票がまだ完了していません。\nこちらから投票をお願いします。'))
+                messages_to_send.append(
+                    ImageMessage(
+                        original_content_url='https://i.postimg.cc/15qjfcRr/cute3.jpg',
+                        preview_image_url='https://i.postimg.cc/15qjfcRr/cute3.jpg'
+                    )
+                )
+                messages_to_send.append(create_carousel_message('B'))
+                
             else:
+                # 3. まだ投票を開始していない場合
                 data['voters'][user_id] = {}
                 save_votes(data)
                 messages_to_send.append(TextMessage(text='まずは、COOL部門の投票です！'))
@@ -118,6 +132,7 @@ def handle_message(event):
                     )
                 )
                 messages_to_send.append(create_carousel_message('A'))
+            # ----------------------------------------
             
     elif text == '集計':
         if user_id in ADMIN_USER_IDS:
@@ -207,3 +222,4 @@ def handle_postback(event):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
