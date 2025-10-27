@@ -1,3 +1,4 @@
+# 必要なライブラリを読み込む
 import os
 import json
 from urllib.parse import parse_qs
@@ -25,25 +26,26 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 
 app = Flask(__name__)
 
-# LINE Developersコンソールで取得した値を設定
-configuration = Configuration(access_token='CRGRXv3lv4npWSbG3EWlkjLfbO2BlC76kiDRSwb99Tzx9IIrnkZYALJzS4NQ92acWNVGZG1apefFqXOsnlL4Q73c6KDM2wcw14ibmD34rpH5BY+R29TiHRfHSSPZENgQGlAr3ikb0ydq21ZOwXQ9mgdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('963605e7b2c57bf9262699e1bc4be12a')
+# ★★★ Renderの環境変数から設定を読み込む（修正点１） ★★★
+ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
+ADMIN_USER_IDS_str = os.environ.get('ADMIN_USER_IDS', '') # カンマ区切りの文字列として読み込む
+
+# カンマ区切りの文字列をリストに変換
+ADMIN_USER_IDS = ADMIN_USER_IDS_str.split(',')
+# ★★★ 設定はここまで ★★★
+
+configuration = Configuration(access_token=ACCESS_TOKEN)
+handler = WebhookHandler(CHANNEL_SECRET)
 
 VOTES_FILE = 'votes.json'
-
-# ★★★ 管理者設定 ★★★
-ADMIN_USER_IDs = ['Uf1611271742fa4f05fa7cc43fba1069d',
-'U6752c92e842f5e1401e2b1ec479856d0',
-'U591f718b10f9f62d09be717c34261e3f',
-'Ud261a022a8834f5febb028928488477d',
-]
 
 CANDIDATES = {
     '1': {'group': 'A', 'name': '佐藤翼 No.1', 'image_url': 'https://i.postimg.cc/s2zVxgpw/317038.jpg', 'description': '【ど田舎からの刺客】'},
     '2': {'group': 'A', 'name': '高岡友輝 No.2', 'image_url': 'https://i.postimg.cc/tJsbwZj4/317039.jpg', 'description': '【制御不能なカリスマ】'},
     '3': {'group': 'A', 'name': '磯歩夢 No.3', 'image_url': 'https://i.postimg.cc/rwXTZwZg/317040.jpg', 'description': '【夢に向かって、歩む。】'},
-    '4': {'group': 'B', 'name': '興田愛加 No.4', 'image_url': 'https://i.postimg.cc/vTJJK0h2/317041.jpg', 'description': '【控えめに見えて、透き通る強さ】'},
-    '5': {'group': 'B', 'name': '早川 No.5', 'image_url': 'https://i.postimg.cc/rFWswbBL/317043.jpg', 'description': '【たまに見かけるシルカフェのお兄さん】'},
+    '4': {'group': 'B', 'name': '與田愛加 No.4', 'image_url': 'https://i.postimg.cc/vTJJK0h2/317041.jpg', 'description': '【控えめに見えて、透き通る強さ】'},
+    '5': {'group': 'B', 'name': '早川晏麓 No.5', 'image_url': 'https://i.postimg.cc/rFWswbBL/317043.jpg', 'description': '【たまに見かけるシルカフェのお兄さん】'},
     '6': {'group': 'B', 'name': '岡村菜那 No.6', 'image_url': 'https://i.postimg.cc/BvZnNvXD/317044.jpg', 'description': '【笑顔でみなさんを元気にさせます🤍】'},
 }
 
@@ -91,27 +93,34 @@ def handle_message(event):
     messages_to_send = []
 
     if text == '投票':
-        today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y-%m-%d')
-        data = load_votes()
-        voter_info = data['voters'].get(user_id, {})
-        last_vote_date = voter_info.get('last_vote_date')
+        now_jst = datetime.now(ZoneInfo("Asia/Tokyo"))
+        # ★★★ 投票開始日をここで設定 ★★★
+        start_date = datetime(2025, 10, 24, 0, 0, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
 
-        if last_vote_date == today_jst:
-            messages_to_send.append(TextMessage(text='本日の投票は既に完了しています。また明日、よろしくお願いします！'))
+        if now_jst < start_date:
+            messages_to_send.append(TextMessage(text='投票は10月24日の午前0時から開始します。もうしばらくお待ちください！'))
         else:
-            data['voters'][user_id] = {}
-            save_votes(data)
-            messages_to_send.append(TextMessage(text='まずは、COOL部門の投票です！'))
-            messages_to_send.append(
-                ImageMessage(
-                    original_content_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg',
-                    preview_image_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg'
+            today_jst_str = now_jst.strftime('%Y-%m-%d')
+            data = load_votes()
+            voter_info = data['voters'].get(user_id, {})
+            last_vote_date = voter_info.get('last_vote_date')
+
+            if last_vote_date == today_jst_str:
+                messages_to_send.append(TextMessage(text='本日の投票は既に完了しています。また明日、よろしくお願いします！'))
+            else:
+                data['voters'][user_id] = {}
+                save_votes(data)
+                messages_to_send.append(TextMessage(text='まずは、COOL部門の投票です！'))
+                messages_to_send.append(
+                    ImageMessage(
+                        original_content_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg',
+                        preview_image_url='https://i.postimg.cc/Z5mVnGDg/cool3.jpg'
+                    )
                 )
-            )
-            messages_to_send.append(create_carousel_message('A'))
+                messages_to_send.append(create_carousel_message('A'))
             
     elif text == '集計':
-        if user_id in ADMIN_USER_IDs:
+        if user_id in ADMIN_USER_IDS:
             data = load_votes()
             vote_counts = data['votes']
             sorted_votes = sorted(vote_counts.items(), key=lambda item: item[1], reverse=True)
@@ -126,7 +135,7 @@ def handle_message(event):
             pass
 
     elif text == 'リセット':
-        if user_id in ADMIN_USER_IDs:
+        if user_id in ADMIN_USER_IDS:
             data = load_votes()
             voter_info = data['voters'].get(user_id)
 
@@ -161,7 +170,6 @@ def handle_postback(event):
         voter_info = data['voters'].get(user_id, {})
         voted_group = voted_candidate['group']
 
-        # この関数で送るメッセージを格納するリストを初期化
         messages_to_send = []
 
         if voter_info.get(voted_group):
@@ -172,22 +180,16 @@ def handle_postback(event):
             
             if voted_group == 'A':
                 save_votes(data)
-                
-                # --- ★★★ ここからが修正部分 ★★★ ---
-                # 1. テキストメッセージを追加
                 messages_to_send.append(TextMessage(text=f'{voted_candidate["name"]}さんに投票しました。\n次は、CUTE部門の投票です！'))
-                # 2. 画像メッセージを追加
                 messages_to_send.append(
                     ImageMessage(
                         original_content_url='https://i.postimg.cc/15qjfcRr/cute3.jpg',
                         preview_image_url='https://i.postimg.cc/15qjfcRr/cute3.jpg'
                     )
                 )
-                # 3. カルーセルメッセージを追加
                 messages_to_send.append(create_carousel_message('B'))
-                # ------------------------------------
 
-            else: # グループBに投票した場合
+            else: 
                 today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y-%m-%d')
                 data['voters'][user_id]['last_vote_date'] = today_jst
                 save_votes(data)
