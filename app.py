@@ -48,7 +48,7 @@ VOTES_FILE = '/data/votes.json'
 JST = ZoneInfo("Asia/Tokyo")
 
 # 投票期間の設定 (前回指定の日時)
-VOTE_START = datetime(2025, 11, 8, 1, 36, 0, tzinfo=JST)
+VOTE_START = datetime(2025, 11, 8, 4, 0, 0, tzinfo=JST)
 VOTE_END = datetime(2025, 11, 22, 23, 59, 59, tzinfo=JST)
 # --- ▲▲▲ [修正点 2] 投票期間とタイムゾーンの定義 ▲▲▲ ---
 
@@ -321,4 +321,5 @@ def handle_postback(event):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
