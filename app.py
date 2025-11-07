@@ -48,7 +48,7 @@ VOTES_FILE = '/data/votes.json'
 JST = ZoneInfo("Asia/Tokyo")
 
 # 投票期間の設定 (前回指定の日時)
-VOTE_START = datetime(2025, 11, 8, 4, 0, 0, tzinfo=JST)
+VOTE_START = datetime(2025, 11, 8, 1, 36, 0, tzinfo=JST)
 VOTE_END = datetime(2025, 11, 22, 23, 59, 59, tzinfo=JST)
 # --- ▲▲▲ [修正点 2] 投票期間とタイムゾーンの定義 ▲▲▲ ---
 
@@ -175,9 +175,9 @@ def handle_message(event):
         if text == '投票':
             # --- [修正点 2] 投票期間チェック ---
             if now_jst < VOTE_START:
-                messages_to_send.append(TextMessage(text=f"投票は 11月8日(土) 午前4時 からです。\nもうしばらくお待ちください。"))
+                messages_to_send.append(TextMessage(text=f"ただいまメンテナンス中です。\n投票は 11月8日(土) 午前4時 からです。\nもうしばらくお待ちください！"))
             elif now_jst > VOTE_END:
-                messages_to_send.append(TextMessage(text="投票は 11月22日(土) 23:59 に終了しました。"))
+                messages_to_send.append(TextMessage(text="投票は 11月22日をもって終了しました。\nたくさんのご投票、ありがとうございました！"))
             # --- 期間内の処理 (元のロジック) ---
             else:
                 today_jst_str = now_jst.strftime('%Y-%m-%d')
@@ -321,3 +321,4 @@ def handle_postback(event):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
